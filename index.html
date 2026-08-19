@@ -63,7 +63,19 @@ input:focus,select:focus{border-color:var(--forest)}
 .toast{background:#E4F6EC;border:2px solid var(--forest);border-radius:18px;padding:12px 16px;font-weight:800;color:var(--forest-dark)}
 .result{max-width:440px;margin:0 auto;padding:36px;text-align:center}
 .muted{color:var(--ink-soft)}
+.sound-btn{border:2px solid var(--line);background:var(--paper);width:40px;height:40px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sound-btn:hover{background:#F3EEDF}
+.sound-btn.muted{opacity:.45}
+.photo-picker{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.photo-btn{padding:10px 16px;font-size:.88rem;cursor:pointer}
+.photo-preview{margin-top:12px;max-height:220px;width:auto;border-radius:16px;border:2px solid var(--line);box-shadow:var(--shadow-sm)}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.04)}100%{transform:scale(1)}}
+.opt.correct{animation:pop .35s ease}
+.opt.wrong{animation:pop .35s ease}
 </style>
+  <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
 </head>
 <body>
 <nav class="topnav"><div class="inner">
@@ -74,6 +86,7 @@ input:focus,select:focus{border-color:var(--forest)}
     <button data-page="animals">&#128062; Animals</button>
     <button data-page="manage">&#9881;&#65039; Manage</button>
   </div>
+  <button id="sound-toggle" class="sound-btn" title="Toggle sound" aria-label="Toggle sound">&#128266;</button>
 </div></nav>
 <main>
   <section id="page-home" class="page active">
@@ -106,7 +119,19 @@ input:focus,select:focus{border-color:var(--forest)}
     <p class="muted">New animals join the gallery and the random quiz rounds right away.</p>
     <form class="card" id="add-form">
       <label class="field">Animal name<input id="f-name" placeholder="Red Panda" required></label>
-      <label class="field">Photo URL<input id="f-image" placeholder="https://..." required></label>
+      <label class="field">Photo URL<input id="f-image" placeholder="https://..."></label>
+      <div class="field">
+        <span>Or take / upload a photo</span>
+        <div class="photo-picker">
+          <label class="btn ghost photo-btn" for="f-photo-camera">&#128247; Take photo</label>
+          <input type="file" id="f-photo-camera" accept="image/*" capture="environment" hidden>
+          <label class="btn ghost photo-btn" for="f-photo-upload">&#128193; Upload photo</label>
+          <input type="file" id="f-photo-upload" accept="image/*" hidden>
+          <button type="button" class="btn danger" id="f-photo-clear" hidden>Remove photo</button>
+        </div>
+        <img id="f-preview" class="photo-preview" hidden alt="Selected photo preview">
+        <p class="muted" id="f-photo-hint" style="margin:0;font-weight:600;font-size:.85rem">Provide a Photo URL above, or take/upload a photo here.</p>
+      </div>
       <label class="field">Category<select id="f-cat"><option>Wild</option><option>Farm</option><option>Marine</option><option>Domestic</option></select></label>
       <button class="btn" type="submit" style="justify-self:start">Save animal &#128062;</button>
       <div class="toast" id="toast" hidden>&#9989; Saved! It will show up in the next round.</div>
@@ -116,7 +141,85 @@ input:focus,select:focus{border-color:var(--forest)}
   </section>
 </main>
 <script>
-var BASE_ANIMALS = [{"name": "Lion", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Lion_waiting_in_Nambia.jpg?width=600", "category": "Wild"}, {"name": "Tiger", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Walking_tiger_female.jpg?width=600", "category": "Wild"}, {"name": "Elephant", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/African_Bush_Elephant.jpg?width=600", "category": "Wild"}, {"name": "Dog", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Golden_Retriever_Dukedestiny01_drvd.jpg?width=600", "category": "Domestic"}, {"name": "Cat", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Cat_November_2010-1a.jpg?width=600", "category": "Domestic"}, {"name": "Horse", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Nokota_Horses_cropped.jpg?width=600", "category": "Farm"}, {"name": "Monkey", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Macaca_nigra_self-portrait_large.jpg?width=600", "category": "Wild"}, {"name": "Giraffe", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Giraffe_standing.jpg?width=600", "category": "Wild"}, {"name": "Zebra", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Plains_Zebra_Equus_quagga.jpg?width=600", "category": "Wild"}, {"name": "Panda", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Giant_Panda_2004-03-2.jpg?width=600", "category": "Wild"}, {"name": "Bear", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/2010-kodiak-bear-1.jpg?width=600", "category": "Wild"}, {"name": "Rabbit", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Oryctolagus_cuniculus_Rcdo.jpg?width=600", "category": "Domestic"}, {"name": "Kangaroo", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Kangaroo_and_joey03.jpg?width=600", "category": "Wild"}, {"name": "Penguin", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Emperor_penguin.jpg?width=600", "category": "Wild"}, {"name": "Dolphin", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Tursiops_truncatus_01.jpg?width=600", "category": "Marine"}, {"name": "Wolf", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Eurasian_wolf.JPG?width=600", "category": "Wild"}, {"name": "Fox", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Red_fox.jpg?width=600", "category": "Wild"}, {"name": "Koala", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Koala.jpg?width=600", "category": "Wild"}, {"name": "Red Panda", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Red_Panda.JPG?width=600", "category": "Wild"}, {"name": "Owl", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Barn_Owl_(16571970066).jpg?width=600", "category": "Wild"}, {"name": "Eagle", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Bald_eagle.jpg?width=600", "category": "Wild"}, {"name": "Peacock", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Indian_National_Bird_-_Peacock.jpg?width=600", "category": "Wild"}, {"name": "Flamingo", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Flamingos01.JPG?width=600", "category": "Wild"}, {"name": "Ostrich", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/North_African_ostrich_(Struthio_camelus_camelus)_male.jpg?width=600", "category": "Wild"}, {"name": "Camel", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Camel-Desert_animal.jpg?width=600", "category": "Wild"}, {"name": "Sheep", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Sheep.jpg?width=600", "category": "Farm"}, {"name": "Goat", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Goat.jpg?width=600", "category": "Farm"}, {"name": "Pig", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Pig.jpg?width=600", "category": "Farm"}, {"name": "Cow", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Cow_1.JPG?width=600", "category": "Farm"}, {"name": "Chicken", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Chicken.JPG?width=600", "category": "Farm"}, {"name": "Duck", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Duck.jpg?width=600", "category": "Farm"}, {"name": "Turkey", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Male_wild_turkey_(Meleagris_gallopavo)_strutting.jpg?width=600", "category": "Farm"}, {"name": "Frog", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Australia_green_tree_frog_(Litoria_caerulea)_crop.jpg?width=600", "category": "Wild"}, {"name": "Turtle", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Turtle.JPG?width=600", "category": "Wild"}, {"name": "Crocodile", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Crocodile_at_Cayman_Turtle_Farm.jpg?width=600", "category": "Wild"}, {"name": "Octopus", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Octopus.jpg?width=600", "category": "Marine"}, {"name": "Shark", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/White_shark.jpg?width=600", "category": "Marine"}, {"name": "Whale", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Humpback_Whale_Breaching_in_Hervey_Bay,_Alaska.jpg?width=600", "category": "Marine"}, {"name": "Seal", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Harbor_Seal_(phoca_vitulina).jpg?width=600", "category": "Marine"}, {"name": "Otter", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Sea_otter.jpg?width=600", "category": "Marine"}, {"name": "Raccoon", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Raccoon_getting_in_trouble.jpg?width=600", "category": "Wild"}, {"name": "Hippopotamus", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Hippopotamus_in_the_Zambezi.jpg?width=600", "category": "Wild"}, {"name": "Rhinoceros", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Rhinoceros_male_2003.jpg?width=600", "category": "Wild"}, {"name": "Cheetah", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Cheetah.JPG?width=600", "category": "Wild"}, {"name": "Sloth", "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Brown-throated_three-toed_sloth_female.JPG?width=600", "category": "Wild"}];
+var BASE_ANIMALS = [{"name": "Lion", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Lion_waiting_in_Namibia.jpg/600px-Lion_waiting_in_Namibia.jpg", "category": "Wild"}, {"name": "Tiger", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Walking_tiger_female.jpg/600px-Walking_tiger_female.jpg", "category": "Wild"}, {"name": "Elephant", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/African_Bush_Elephant.jpg/600px-African_Bush_Elephant.jpg", "category": "Wild"}, {"name": "Dog", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Golden_Retriever_Dukedestiny01_drvd.jpg/600px-Golden_Retriever_Dukedestiny01_drvd.jpg", "category": "Domestic"}, {"name": "Cat", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Cat_November_2010-1a.jpg/600px-Cat_November_2010-1a.jpg", "category": "Domestic"}, {"name": "Horse", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Nokota_Horses_cropped.jpg/600px-Nokota_Horses_cropped.jpg", "category": "Farm"}, {"name": "Monkey", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Macaca_nigra_self-portrait_large.jpg/600px-Macaca_nigra_self-portrait_large.jpg", "category": "Wild"}, {"name": "Giraffe", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Giraffe_standing.jpg/600px-Giraffe_standing.jpg", "category": "Wild"}, {"name": "Zebra", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Plains_Zebra_Equus_quagga.jpg/600px-Plains_Zebra_Equus_quagga.jpg", "category": "Wild"}, {"name": "Panda", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Giant_Panda_2004-03-2.jpg/600px-Giant_Panda_2004-03-2.jpg", "category": "Wild"}, {"name": "Bear", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/2010-kodiak-bear-1.jpg/600px-2010-kodiak-bear-1.jpg", "category": "Wild"}, {"name": "Rabbit", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Oryctolagus_cuniculus_Rcdo.jpg/600px-Oryctolagus_cuniculus_Rcdo.jpg", "category": "Domestic"}, {"name": "Kangaroo", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Kangaroo_and_joey03.jpg/600px-Kangaroo_and_joey03.jpg", "category": "Wild"}, {"name": "Penguin", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Emperor_penguin.jpg/600px-Emperor_penguin.jpg", "category": "Wild"}, {"name": "Dolphin", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Tursiops_truncatus_01.jpg/600px-Tursiops_truncatus_01.jpg", "category": "Marine"}, {"name": "Wolf", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Eurasian_wolf_2.jpg/600px-Eurasian_wolf_2.jpg", "category": "Wild"}, {"name": "Fox", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Red_fox_Vulpes_vulpes.jpg/600px-Red_fox_Vulpes_vulpes.jpg", "category": "Wild"}, {"name": "Koala", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Koala_climbing_tree.jpg/600px-Koala_climbing_tree.jpg", "category": "Wild"}, {"name": "Red Panda", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Red_Panda_Huala.jpg/600px-Red_Panda_Huala.jpg", "category": "Wild"}, {"name": "Owl", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Barn_Owl_%2816571970066%29.jpg/600px-Barn_Owl_%2816571970066%29.jpg", "category": "Wild"}, {"name": "Eagle", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Bald_eagle.jpg/600px-Bald_eagle.jpg", "category": "Wild"}, {"name": "Peacock", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Indian_National_Bird_-_Peacock.jpg/600px-Indian_National_Bird_-_Peacock.jpg", "category": "Wild"}, {"name": "Flamingo", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Flamingos01.JPG/600px-Flamingos01.JPG", "category": "Wild"}, {"name": "Ostrich", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/North_African_ostrich_%28Struthio_camelus_camelus%29_male.jpg/600px-North_African_ostrich_%28Struthio_camelus_camelus%29_male.jpg", "category": "Wild"}, {"name": "Camel", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Camel-Desert_animal.jpg/600px-Camel-Desert_animal.jpg", "category": "Wild"}, {"name": "Sheep", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Sheep.jpg/600px-Sheep.jpg", "category": "Farm"}, {"name": "Goat", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Goat.jpg/600px-Goat.jpg", "category": "Farm"}, {"name": "Pig", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Pig.jpg/600px-Pig.jpg", "category": "Farm"}, {"name": "Cow", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cow_1.JPG/600px-Cow_1.JPG", "category": "Farm"}, {"name": "Chicken", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Chicken.JPG/600px-Chicken.JPG", "category": "Farm"}, {"name": "Duck", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Duck.jpg/600px-Duck.jpg", "category": "Farm"}, {"name": "Turkey", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Male_wild_turkey_%28Meleagris_gallopavo%29_strutting.jpg/600px-Male_wild_turkey_%28Meleagris_gallopavo%29_strutting.jpg", "category": "Farm"}, {"name": "Frog", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Australia_green_tree_frog_%28Litoria_caerulea%29_crop.jpg/600px-Australia_green_tree_frog_%28Litoria_caerulea%29_crop.jpg", "category": "Wild"}, {"name": "Turtle", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Turtle.JPG/600px-Turtle.JPG", "category": "Wild"}, {"name": "Crocodile", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Crocodile_at_Cayman_Turtle_Farm.jpg/600px-Crocodile_at_Cayman_Turtle_Farm.jpg", "category": "Wild"}, {"name": "Octopus", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Octopus.jpg/600px-Octopus.jpg", "category": "Marine"}, {"name": "Shark", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/White_shark.jpg/600px-White_shark.jpg", "category": "Marine"}, {"name": "Whale", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Humpback_Whale_Breaching_in_Hervey_Bay%2C_Alaska.jpg/600px-Humpback_Whale_Breaching_in_Hervey_Bay%2C_Alaska.jpg", "category": "Marine"}, {"name": "Seal", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Harbor_Seal_%28phoca_vitulina%29.jpg/600px-Harbor_Seal_%28phoca_vitulina%29.jpg", "category": "Marine"}, {"name": "Otter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Sea_otter.jpg/600px-Sea_otter.jpg", "category": "Marine"}, {"name": "Raccoon", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Raccoon_getting_in_trouble.jpg/600px-Raccoon_getting_in_trouble.jpg", "category": "Wild"}, {"name": "Hippopotamus", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Hippopotamus_in_the_Zambezi.jpg/600px-Hippopotamus_in_the_Zambezi.jpg", "category": "Wild"}, {"name": "Rhinoceros", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Rhinoceros_male_2003.jpg/600px-Rhinoceros_male_2003.jpg", "category": "Wild"}, {"name": "Cheetah", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Cheetah.JPG/600px-Cheetah.JPG", "category": "Wild"}, {"name": "Sloth", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Brown-throated_three-toed_sloth_female.JPG/600px-Brown-throated_three-toed_sloth_female.JPG", "category": "Wild"}, {"name": "Leopard", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Leopard_africa.jpg/600px-Leopard_africa.jpg", "category": "Wild"}, {"name": "Jaguar", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Standing_jaguar.jpg/600px-Standing_jaguar.jpg", "category": "Wild"}, {"name": "Hyena", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Star_spotted_hyena.jpg/600px-Star_spotted_hyena.jpg", "category": "Wild"}, {"name": "Meerkat", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Meerkat_%28Suricata_suricatta%29_Tswalu.jpg/600px-Meerkat_%28Suricata_suricatta%29_Tswalu.jpg", "category": "Wild"}, {"name": "Bison", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/American_bison_k5680-1.jpg/600px-American_bison_k5680-1.jpg", "category": "Wild"}, {"name": "Moose", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Moose_superior_national_forest.jpg/600px-Moose_superior_national_forest.jpg", "category": "Wild"}, {"name": "Reindeer", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Rangifer_tarandus_3.jpg/600px-Rangifer_tarandus_3.jpg", "category": "Wild"}, {"name": "Squirrel", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Sciurus_carolinensis_%286858533226%29.jpg/600px-Sciurus_carolinensis_%286858533226%29.jpg", "category": "Wild"}, {"name": "Hedgehog", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Erinaceus_europaeus_LC0143.jpg/600px-Erinaceus_europaeus_LC0143.jpg", "category": "Wild"}, {"name": "Bat", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Pteropus_vampyrus_-_Lubee_Bat_Conservancy-8a.jpg/600px-Pteropus_vampyrus_-_Lubee_Bat_Conservancy-8a.jpg", "category": "Wild"}, {"name": "Falcon", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Peregrine_falcon_%28Falco_peregrinus%29.jpg/600px-Peregrine_falcon_%28Falco_peregrinus%29.jpg", "category": "Wild"}, {"name": "Parrot", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Blue-and-Yellow-Macaw.jpg/600px-Blue-and-Yellow-Macaw.jpg", "category": "Wild"}, {"name": "Toucan", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Tucan_%28Ramphastos_toco%29_%2814589656289%29.jpg/600px-Tucan_%28Ramphastos_toco%29_%2814589656289%29.jpg", "category": "Wild"}, {"name": "Swan", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Mute_swan_2.jpg/600px-Mute_swan_2.jpg", "category": "Wild"}, {"name": "Pelican", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Great_white_pelican_%28Pelecanus_onocrotalus%29.jpg/600px-Great_white_pelican_%28Pelecanus_onocrotalus%29.jpg", "category": "Wild"}, {"name": "Woodpecker", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Great_spotted_woodpecker_%28Dendrocopos_major%29.jpg/600px-Great_spotted_woodpecker_%28Dendrocopos_major%29.jpg", "category": "Wild"}, {"name": "Hummingbird", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Rufous_Hummingbird_%288079039311%29.jpg/600px-Rufous_Hummingbird_%288079039311%29.jpg", "category": "Wild"}, {"name": "Stork", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/White_Stork_%28Ciconia_ciconia%29.jpg/600px-White_Stork_%28Ciconia_ciconia%29.jpg", "category": "Wild"}, {"name": "Crane", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Grus_grus_%28Common_Crane%29.jpg/600px-Grus_grus_%28Common_Crane%29.jpg", "category": "Wild"}, {"name": "Seahorse", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Hippocampus_kuda.jpg/600px-Hippocampus_kuda.jpg", "category": "Marine"}, {"name": "Jellyfish", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Aurelia_aurita_%283%29.jpg/600px-Aurelia_aurita_%283%29.jpg", "category": "Marine"}, {"name": "Starfish", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Starfish%2C_Aquarium_of_Genoa%2C_Italy.jpg/600px-Starfish%2C_Aquarium_of_Genoa%2C_Italy.jpg", "category": "Marine"}, {"name": "Crab", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/European_shore_crab.jpg/600px-European_shore_crab.jpg", "category": "Marine"}, {"name": "Lobster", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Homarus_americanus.jpg/600px-Homarus_americanus.jpg", "category": "Marine"}, {"name": "Stingray", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Stingray2.jpg/600px-Stingray2.jpg", "category": "Marine"}, {"name": "Clownfish", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Clown_fish_in_the_Andaman_Coral_Reef.jpg/600px-Clown_fish_in_the_Andaman_Coral_Reef.jpg", "category": "Marine"}, {"name": "Walrus", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Pacific_walrus_-_Bull_%288247458984%29.jpg/600px-Pacific_walrus_-_Bull_%288247458984%29.jpg", "category": "Marine"}, {"name": "Manatee", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Manatee.jpg/600px-Manatee.jpg", "category": "Marine"}, {"name": "Orca", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Killerwhales_jumping.jpg/600px-Killerwhales_jumping.jpg", "category": "Marine"}, {"name": "Alligator", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/American_Alligator.jpg/600px-American_Alligator.jpg", "category": "Wild"}, {"name": "Iguana", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Iguana_iguana_%28male%29.jpg/600px-Iguana_iguana_%28male%29.jpg", "category": "Wild"}, {"name": "Chameleon", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Chamaeleo_calyptratus_male.jpg/600px-Chamaeleo_calyptratus_male.jpg", "category": "Wild"}, {"name": "Gecko", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Tokay_gecko_2.jpg/600px-Tokay_gecko_2.jpg", "category": "Wild"}, {"name": "Snake", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Ball_python.jpg/600px-Ball_python.jpg", "category": "Wild"}, {"name": "Lizard", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Lacerta_viridis_%28male%29.jpg/600px-Lacerta_viridis_%28male%29.jpg", "category": "Wild"}, {"name": "Snail", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Helix_pomatia_01.jpg/600px-Helix_pomatia_01.jpg", "category": "Wild"}, {"name": "Butterfly", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Monarch_In_May.jpg/600px-Monarch_In_May.jpg", "category": "Wild"}, {"name": "Bee", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Apis_mellifera_Western_honey_bee.jpg/600px-Apis_mellifera_Western_honey_bee.jpg", "category": "Wild"}, {"name": "Ladybug", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Coccinella_septempunctata_1.jpg/600px-Coccinella_septempunctata_1.jpg", "category": "Wild"}, {"name": "Spider", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Araneus_diadematus_%282%29.jpg/600px-Araneus_diadematus_%282%29.jpg", "category": "Wild"}, {"name": "Scorpion", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Yellow_scorpion.jpg/600px-Yellow_scorpion.jpg", "category": "Wild"}, {"name": "Llama", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Llama_lying_down.jpg/600px-Llama_lying_down.jpg", "category": "Farm"}, {"name": "Alpaca", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Alpaca_%2831562891677%29.jpg/600px-Alpaca_%2831562891677%29.jpg", "category": "Farm"}, {"name": "Donkey", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Donkey_in_Amman.jpg/600px-Donkey_in_Amman.jpg", "category": "Farm"}, {"name": "Water Buffalo", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Wasserbueffel.jpg/600px-Wasserbueffel.jpg", "category": "Farm"}, {"name": "Guinea Pig", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Guinea_pig_%28Cavia_porcellus%29.jpg/600px-Guinea_pig_%28Cavia_porcellus%29.jpg", "category": "Domestic"}, {"name": "Hamster", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Golden_hamster.jpg/600px-Golden_hamster.jpg", "category": "Domestic"}, {"name": "Ferret", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Ferret_2.jpg/600px-Ferret_2.jpg", "category": "Domestic"}, {"name": "Parakeet", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Budgerigar_%28Melopsittacus_undulatus%29_male.jpg/600px-Budgerigar_%28Melopsittacus_undulatus%29_male.jpg", "category": "Domestic"}, {"name": "Goldfish", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Common_goldfish.JPG/600px-Common_goldfish.JPG", "category": "Domestic"}, {"name": "Antelope", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Eland_bull.jpg/600px-Eland_bull.jpg", "category": "Wild"}, {"name": "Baboon", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Papio_anubis_%28Serengeti%2C_2009%29.jpg/600px-Papio_anubis_%28Serengeti%2C_2009%29.jpg", "category": "Wild"}, {"name": "Badger", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Badger_meles_meles.jpg/600px-Badger_meles_meles.jpg", "category": "Wild"}, {"name": "Beaver", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Beaver_1.jpg/600px-Beaver_1.jpg", "category": "Wild"}, {"name": "Buffalo", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/African_buffalo_%28Syncerus_caffer%29.jpg/600px-African_buffalo_%28Syncerus_caffer%29.jpg", "category": "Wild"}, {"name": "Chipmunk", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Tamias-rufus-9.jpg/600px-Tamias-rufus-9.jpg", "category": "Wild"}, {"name": "Cobra", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Cobra_capelo.jpg/600px-Cobra_capelo.jpg", "category": "Wild"}, {"name": "Cockatoo", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Cacatua_galerita_-Sydney-8.jpg/600px-Cacatua_galerita_-Sydney-8.jpg", "category": "Domestic"}, {"name": "Coyote", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Coyote_-_John_Muir_NHS.jpg/600px-Coyote_-_John_Muir_NHS.jpg", "category": "Wild"}, {"name": "Deer", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Red_deer_stag_2009_09.jpg/600px-Red_deer_stag_2009_09.jpg", "category": "Wild"}, {"name": "Dingo", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Dingo_1.jpg/600px-Dingo_1.jpg", "category": "Wild"}, {"name": "Dragonfly", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Sympetrum_flaveolum_-_side_%28aka%29.jpg/600px-Sympetrum_flaveolum_-_side_%28aka%29.jpg", "category": "Wild"}, {"name": "Eel", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Moray_eel.jpg/600px-Moray_eel.jpg", "category": "Marine"}, {"name": "Emu", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Emu_-_Melbourne_Zoo.jpg/600px-Emu_-_Melbourne_Zoo.jpg", "category": "Wild"}, {"name": "Gazelle", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Thomson_gazelle.jpeg/600px-Thomson_gazelle.jpeg", "category": "Wild"}, {"name": "Gorilla", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Gorilla_Cleveland_Zoo.jpg/600px-Gorilla_Cleveland_Zoo.jpg", "category": "Wild"}, {"name": "Heron", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Grey_Heron_%28Ardea_cinerea%29_close-up.jpg/600px-Grey_Heron_%28Ardea_cinerea%29_close-up.jpg", "category": "Wild"}, {"name": "Hornet", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Vespa_crabio_1.jpg/600px-Vespa_crabio_1.jpg", "category": "Wild"}, {"name": "Ibis", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Australian_white_ibis_%28Threskiornis_molucca%29.jpg/600px-Australian_white_ibis_%28Threskiornis_molucca%29.jpg", "category": "Wild"}, {"name": "Impala", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Impala_-_Kruger_National_Park.jpg/600px-Impala_-_Kruger_National_Park.jpg", "category": "Wild"}, {"name": "Jackal", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Black-backed_jackal.jpg/600px-Black-backed_jackal.jpg", "category": "Wild"}, {"name": "Koi", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Koi16s.jpg/600px-Koi16s.jpg", "category": "Domestic"}, {"name": "Lemur", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Ring-tailed_lemur_%28Lemur_catta%29.jpg/600px-Ring-tailed_lemur_%28Lemur_catta%29.jpg", "category": "Wild"}, {"name": "Lionfish", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Pterois_volitans_Manado.jpg/600px-Pterois_volitans_Manado.jpg", "category": "Marine"}, {"name": "Lynx", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Lynx_lynx2.jpg/600px-Lynx_lynx2.jpg", "category": "Wild"}, {"name": "Mole", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Talpa_europaea.jpg/600px-Talpa_europaea.jpg", "category": "Wild"}, {"name": "Mongoose", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Yellow_Mongoose.jpg/600px-Yellow_Mongoose.jpg", "category": "Wild"}, {"name": "Mule", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Mule_1.jpg/600px-Mule_1.jpg", "category": "Farm"}, {"name": "Narwhal", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Narwhal_side.jpg/600px-Narwhal_side.jpg", "category": "Marine"}, {"name": "Newt", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Northern_Crested_Newt.jpg/600px-Northern_Crested_Newt.jpg", "category": "Wild"}];
+/* ---------- Sound engine (synthesised, no external audio files) ---------- */
+var Sound = (function(){
+  var ctx = null, SKEY = 'guess-the-animal:muted';
+  var muted = localStorage.getItem(SKEY) === '1';
+  function ac(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx = null; } } return ctx; }
+  function tone(freq, start, dur, type, vol){
+    var a = ac(); if(!a || muted) return;
+    if(a.state === 'suspended') a.resume();
+    var osc = a.createOscillator(), gain = a.createGain();
+    osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, a.currentTime + start);
+    gain.gain.setValueAtTime(0, a.currentTime + start);
+    gain.gain.linearRampToValueAtTime(vol||0.18, a.currentTime + start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, a.currentTime + start + dur);
+    osc.connect(gain); gain.connect(a.destination);
+    osc.start(a.currentTime + start); osc.stop(a.currentTime + start + dur + 0.02);
+  }
+  return {
+    click: function(){ tone(520, 0, .07, 'square', .1); },
+    correct: function(){ tone(523.25,0,.12,'sine'); tone(659.25,.1,.12,'sine'); tone(783.99,.2,.22,'sine'); },
+    wrong: function(){ tone(220,0,.18,'sawtooth',.14); tone(164.81,.14,.26,'sawtooth',.14); },
+    fanfare: function(){ [523.25,659.25,783.99,1046.5].forEach(function(f,i){ tone(f, i*.13, .28, 'triangle', .16); }); },
+    isMuted: function(){ return muted; },
+    toggle: function(){ muted = !muted; localStorage.setItem(SKEY, muted ? '1' : '0'); return muted; }
+  };
+})();
+function initSoundToggle(){
+  var btn = document.getElementById('sound-toggle');
+  function paint(){ var m = Sound.isMuted(); btn.textContent = m ? '\uD83D\uDD07' : '\uD83D\uDD0A'; btn.classList.toggle('muted', m); btn.title = m ? 'Sound is off (tap to unmute)' : 'Sound is on (tap to mute)'; }
+  btn.addEventListener('click', function(){ Sound.toggle(); paint(); if(!Sound.isMuted()) Sound.click(); });
+  paint();
+}
+initSoundToggle();
+
+/* ---------- Image fallback so a broken photo URL never breaks the game ---------- */
+var FALLBACK_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
+  '<rect width="400" height="300" fill="#F3EEDF"/>' +
+  '<text x="50%" y="46%" font-size="60" text-anchor="middle" dominant-baseline="middle">\uD83D\uDC3E</text>' +
+  '<text x="50%" y="72%" font-size="18" font-family="sans-serif" fill="#5B6B62" text-anchor="middle">Photo unavailable</text>' +
+  '</svg>');
+var IMG_ERR = ' onerror="wikiFix(this)"';
+var WIKI_CACHE_PREFIX = 'guess-the-animal:wikiimg:';
+function fetchWikiThumb(name){
+  var api = 'https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=600&titles=' + encodeURIComponent(name);
+  return fetch(api).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){
+    var pages = data && data.query && data.query.pages;
+    var src = pages && pages[0] && pages[0].thumbnail && pages[0].thumbnail.source;
+    return src || null;
+  }).catch(function(){ return null; });
+}
+function fetchCommonsThumb(name){
+  var api = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*'
+    + '&generator=search&gsrnamespace=6&gsrlimit=1&gsrsearch=' + encodeURIComponent(name + ' animal filetype:bitmap')
+    + '&prop=imageinfo&iiprop=url&iiurlwidth=600';
+  return fetch(api).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){
+    var pages = data && data.query && data.query.pages;
+    var p = pages && pages[0];
+    var info = p && p.imageinfo && p.imageinfo[0];
+    var src = info && (info.thumburl || info.url);
+    return src || null;
+  }).catch(function(){ return null; });
+}
+function wikiFix(img){
+  var name = img.dataset.name;
+  img.onerror = function(){ img.onerror = null; img.src = FALLBACK_IMG; };
+  if(!name){ img.src = FALLBACK_IMG; return; }
+  var cacheKey = WIKI_CACHE_PREFIX + name;
+  var cached = null; try{ cached = localStorage.getItem(cacheKey); }catch(e){}
+  if(cached){ img.src = cached; return; }
+  fetchWikiThumb(name).then(function(src){
+    return src || fetchCommonsThumb(name);
+  }).then(function(src){
+    if(!src) throw 0;
+    try{ localStorage.setItem(cacheKey, src); }catch(e){}
+    img.src = src;
+  }).catch(function(){ img.src = FALLBACK_IMG; });
+}
+
 var ROUND_SIZE = 15, KEY = 'guess-the-animal:custom';
 function readCustom(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
 function writeCustom(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
@@ -128,6 +231,7 @@ function buildRound(){var pool=allAnimals();return shuffle(pool).slice(0,Math.mi
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 
 function show(page){
+  if(page!=='play') clearTimeout(advanceTimer);
   var pages=document.querySelectorAll('.page');
   for(var i=0;i<pages.length;i++) pages[i].classList.toggle('active',pages[i].id==='page-'+page);
   var btns=document.querySelectorAll('.nav-links button');
@@ -139,39 +243,87 @@ function show(page){
 document.addEventListener('click',function(e){var b=e.target.closest('[data-page]'); if(b) show(b.dataset.page);});
 
 var state={round:[],index:0,picked:null,score:0};
-function startRound(){state.round=buildRound();state.index=0;state.picked=null;state.score=0;renderPlay();}
+var advanceTimer=null;
+function goNext(){clearTimeout(advanceTimer);advanceTimer=null;state.picked=null;state.index++;renderPlay();}
+function startRound(){clearTimeout(advanceTimer);advanceTimer=null;state.round=buildRound();state.index=0;state.picked=null;state.score=0;renderPlay();}
 function renderPlay(){
   var root=document.getElementById('play-root');
   if(state.index>=state.round.length){
     root.innerHTML='<div class="card result"><div style="font-size:3.4rem">&#127881;</div><h1>Round complete!</h1><p style="font-weight:800;color:var(--forest)">You scored '+state.score+' / '+state.round.length+'</p><div class="row" style="justify-content:center"><button class="btn" id="again">Play again &#128260;</button><button class="btn ghost" data-page="animals">Browse animals</button></div></div>';
+    Sound.fanfare();
     document.getElementById('again').onclick=startRound;return;
   }
   var q=state.round[state.index], pct=((state.index+(state.picked?1:0))/state.round.length)*100;
   root.innerHTML='<div class="card quiz">'+
     '<div class="track"><div class="fill" style="width:'+pct+'%"></div></div>'+
     '<div class="meta"><span class="pill">Question '+(state.index+1)+' of '+state.round.length+'</span><span class="pill">Score: '+state.score+'</span><button class="pill" id="newround">&#128260; New round</button></div>'+
-    '<div class="qgrid"><figure><img src="'+esc(q.animal.image)+'" alt="Mystery animal photo"><figcaption>Mystery Animal #'+(state.index+1)+'</figcaption></figure>'+
+    '<div class="qgrid"><figure><img src="'+esc(q.animal.image)+'" alt="Mystery animal photo" data-name="'+esc(q.animal.name)+'"'+IMG_ERR+'><figcaption>Mystery Animal #'+(state.index+1)+'</figcaption></figure>'+
     '<div><h1 style="font-size:1.5rem">What animal is this?</h1><div id="opts">'+
       q.options.map(function(o){var cls='opt';if(state.picked){if(o===q.animal.name)cls+=' correct';else if(o===state.picked)cls+=' wrong';}
         return '<button class="'+cls+'" data-opt="'+esc(o)+'"'+(state.picked?' disabled':'')+'>'+esc(o)+'</button>';}).join('')+
-    '</div>'+(state.picked?'<p class="feedback">'+(state.picked===q.animal.name?'&#127881; Correct! It really is a '+esc(q.animal.name)+'.':'&#10060; Wrong! The correct answer is '+esc(q.animal.name)+'.')+'</p><button class="btn" id="next" style="width:100%;margin-top:12px">'+(state.index+1===state.round.length?'See results &#10148;':'Next question &#10148;')+'</button>':'')+
+    '</div>'+(state.picked?'<p class="feedback">'+(state.picked===q.animal.name?'&#127881; Correct! It really is a '+esc(q.animal.name)+'.':'&#10060; Wrong! The correct answer is '+esc(q.animal.name)+'.')+'</p><button class="btn" id="next" style="width:100%;margin-top:12px">'+(state.index+1===state.round.length?'See results now &#10148;':'Next question now &#10148;')+'</button>':'')+
     '</div></div></div>';
   document.getElementById('newround').onclick=startRound;
-  root.querySelectorAll('[data-opt]').forEach(function(b){b.onclick=function(){state.picked=b.dataset.opt;if(state.picked===q.animal.name)state.score++;renderPlay();};});
-  var n=document.getElementById('next'); if(n) n.onclick=function(){state.picked=null;state.index++;renderPlay();};
+  root.querySelectorAll('[data-opt]').forEach(function(b){b.onclick=function(){state.picked=b.dataset.opt;if(state.picked===q.animal.name){state.score++;Sound.correct();}else{Sound.wrong();}renderPlay();clearTimeout(advanceTimer);advanceTimer=setTimeout(goNext,1300);};});
+  var n=document.getElementById('next'); if(n) n.onclick=goNext;
 }
 
-function cardHTML(a,del){return '<article class="animal-card"><img src="'+esc(a.image)+'" alt="Photograph of a '+esc(a.name)+'" loading="lazy"><div class="info"><div><h3>'+esc(a.name)+'</h3><span class="badge">'+esc(a.category)+'</span></div>'+(del?'<button class="btn danger" data-del="'+esc(a.name)+'">Delete</button>':'')+'</div></article>';}
+function cardHTML(a,del){return '<article class="animal-card"><img src="'+esc(a.image)+'" alt="Photograph of a '+esc(a.name)+'" loading="lazy" data-name="'+esc(a.name)+'"'+IMG_ERR+'><div class="info"><div><h3>'+esc(a.name)+'</h3><span class="badge">'+esc(a.category)+'</span></div>'+(del?'<button class="btn danger" data-del="'+esc(a.name)+'">Delete</button>':'')+'</div></article>';}
 function renderGallery(){var list=allAnimals();document.getElementById('gallery-count').textContent=list.length+' animals can appear in a round.';document.getElementById('gallery').innerHTML=list.map(function(a){return cardHTML(a,false);}).join('');}
 function renderCustom(){var c=readCustom();document.getElementById('custom-count').textContent=c.length;
   document.getElementById('custom-grid').innerHTML=c.length?c.map(function(a){return cardHTML(a,true);}).join(''):'<p class="muted">No custom animals yet.</p>';
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){writeCustom(readCustom().filter(function(a){return a.name!==b.dataset.del;}));renderCustom();};});}
-document.getElementById('add-form').addEventListener('submit',function(e){e.preventDefault();
-  var name=document.getElementById('f-name').value.trim(),image=document.getElementById('f-image').value.trim();
-  if(!name||!image)return; writeCustom(readCustom().concat([{name:name,image:image,category:document.getElementById('f-cat').value}]));
-  e.target.reset();document.getElementById('toast').hidden=false;renderCustom();});
+/* ---------- Camera / upload photo capture for the add-animal form ---------- */
+var capturedPhoto = null;
+function resizeToDataURL(file, maxSize, cb){
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height, scale = Math.min(1, maxSize / Math.max(w, h));
+      var cw = Math.round(w * scale), ch = Math.round(h * scale);
+      var canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
+      canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
+      cb(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = function(){ cb(null); };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function(){ cb(null); };
+  reader.readAsDataURL(file);
+}
+function setPreview(dataURL){
+  var img = document.getElementById('f-preview'), clearBtn = document.getElementById('f-photo-clear'), hint = document.getElementById('f-photo-hint');
+  capturedPhoto = dataURL;
+  if(dataURL){
+    img.src = dataURL; img.hidden = false; clearBtn.hidden = false;
+    hint.textContent = 'Photo ready \u2014 this will be used instead of the URL above.';
+    document.getElementById('f-image').value = '';
+  } else {
+    img.removeAttribute('src'); img.hidden = true; clearBtn.hidden = true;
+    hint.textContent = 'Provide a Photo URL above, or take/upload a photo here.';
+  }
+}
+function handlePhotoFile(e){
+  var file = e.target.files && e.target.files[0]; if(!file) return;
+  resizeToDataURL(file, 900, function(dataURL){ if(dataURL) setPreview(dataURL); });
+}
+document.getElementById('f-photo-camera').addEventListener('change', handlePhotoFile);
+document.getElementById('f-photo-upload').addEventListener('change', handlePhotoFile);
+document.getElementById('f-photo-clear').addEventListener('click', function(){
+  setPreview(null);
+  document.getElementById('f-photo-camera').value = '';
+  document.getElementById('f-photo-upload').value = '';
+});
+document.getElementById('f-image').addEventListener('input', function(){ if(this.value.trim()) setPreview(null); });
 
-document.getElementById('home-thumbs').innerHTML=BASE_ANIMALS.slice(0,4).map(function(a){return '<img src="'+esc(a.image)+'" alt="Photograph of a '+esc(a.name)+'">';}).join('');
+document.getElementById('add-form').addEventListener('submit',function(e){e.preventDefault();
+  var name=document.getElementById('f-name').value.trim(),image=capturedPhoto||document.getElementById('f-image').value.trim();
+  if(!name||!image){document.getElementById('f-photo-hint').style.color='var(--coral)';document.getElementById('f-photo-hint').textContent='Add a Photo URL or take/upload a photo before saving.';return;}
+  writeCustom(readCustom().concat([{name:name,image:image,category:document.getElementById('f-cat').value}]));
+  e.target.reset();setPreview(null);document.getElementById('f-photo-hint').style.color='';document.getElementById('toast').hidden=false;renderCustom();});
+
+document.getElementById('home-thumbs').innerHTML=BASE_ANIMALS.slice(0,4).map(function(a){return '<img src="'+esc(a.image)+'" alt="Photograph of a '+esc(a.name)+'" data-name="'+esc(a.name)+'"'+IMG_ERR+'>';}).join('');
 renderGallery();renderCustom();
 </script>
 </body>
